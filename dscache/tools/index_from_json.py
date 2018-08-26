@@ -1,5 +1,5 @@
+import click
 import json
-import toolz
 import datacube
 from datacube.index.hl import Doc2Dataset
 
@@ -16,8 +16,11 @@ def from_json_lines(lines, index, **kwargs):
             print('Error: %s' % err)
 
 
-def main(input_fname, env_name=None):
-    dc = datacube.Datacube(env=env_name)
+@click.command('index_from_json')
+@click.option('--env', type=str, help='Datacube environment name')
+@click.argument('input_fname', type=str, nargs=1)
+def main(input_fname, env=None):
+    dc = datacube.Datacube(env=env)
 
     n_total = 0
     n_failed = 0
@@ -39,8 +42,4 @@ def main(input_fname, env_name=None):
 
 
 if __name__ == '__main__':
-    import sys
-
-    in_file = sys.argv[1]
-    env_name = toolz.get(2, sys.argv, None)
-    main(in_file, env_name)
+    main()

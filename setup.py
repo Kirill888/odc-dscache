@@ -15,4 +15,9 @@ setup(
                       ],
     tests_require=['pytest'],
     extras_require=dict(),
+    entry_points={
+        'console_scripts': [
+            'index_from_json = dscache.tools.index_from_json:main',
+        ]
+    }
 )
