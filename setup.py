@@ -18,6 +18,7 @@ setup(
     entry_points={
         'console_scripts': [
             'index_from_json = dscache.tools.index_from_json:main',
+            'slurpy = dscache.tools.slurpy:slurpy',
         ]
     }
 )
