@@ -33,7 +33,7 @@ def db_connect(cfg=None):
     cfg_remap = dict(dbname='db_database',
                      user='db_username',
                      password='db_password',
-                     host='db_host',
+                     host='db_hostname',
                      port='db_port')
 
     pg_cfg = {k: cfg.get(cfg_name, None)
