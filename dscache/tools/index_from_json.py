@@ -1,4 +1,5 @@
 import click
+import toolz
 import json
 import datacube
 from datacube.index.hl import Doc2Dataset
@@ -7,13 +8,23 @@ from datacube.index.hl import Doc2Dataset
 def from_json_lines(lines, index, **kwargs):
     doc2ds = Doc2Dataset(index, **kwargs)
 
-    for l in lines:
+    for lineno, l in enumerate(lines):
         doc = json.loads(l)
-        ds, err = doc2ds(doc['metadata'], doc['uris'][0])
+        uri = toolz.get_in(['uris', 0], doc)
+        if uri is None:
+            print('Error[%d]: missing uri' % lineno)
+            continue
+
+        metadata = doc.get('metadata')
+        if metadata is None:
+            print('Error[%d]: missing metadata' % lineno)
+            continue
+
+        ds, err = doc2ds(metadata, uri)
         if ds is not None:
             yield ds
         else:
-            print('Error: %s' % err)
+            print('Error[%d]: %s' % (lineno, err))
 
 
 @click.command('index_from_json')
