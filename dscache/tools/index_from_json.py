@@ -9,7 +9,11 @@ def from_json_lines(lines, index, **kwargs):
     doc2ds = Doc2Dataset(index, **kwargs)
 
     for lineno, l in enumerate(lines):
-        doc = json.loads(l)
+        try:
+            doc = json.loads(l)
+        except json.JSONDecodeError as e:
+            print('Error[%d]: %s' % (lineno, str(e)))
+
         uri = toolz.get_in(['uris', 0], doc)
         if uri is None:
             print('Error[%d]: missing uri' % lineno)
