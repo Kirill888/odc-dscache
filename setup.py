@@ -17,8 +17,8 @@ setup(
     extras_require=dict(),
     entry_points={
         'console_scripts': [
-            'index_from_json = dscache.tools.index_from_json:main',
-            'slurpy = dscache.tools.slurpy:slurpy',
+            'index_from_json = dscache.tools.index_from_json:cli',
+            'slurpy = dscache.tools.slurpy:cli',
             'dstiler = dscache.tools.dstiler:cli',
         ]
     }

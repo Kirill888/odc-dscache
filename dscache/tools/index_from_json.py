@@ -34,7 +34,7 @@ def from_json_lines(lines, index, **kwargs):
 @click.command('index_from_json')
 @click.option('--env', type=str, help='Datacube environment name')
 @click.argument('input_fname', type=str, nargs=1)
-def main(input_fname, env=None):
+def cli(input_fname, env=None):
     dc = datacube.Datacube(env=env)
 
     n_total = 0
@@ -57,4 +57,4 @@ def main(input_fname, env=None):
 
 
 if __name__ == '__main__':
-    main()
+    cli()
