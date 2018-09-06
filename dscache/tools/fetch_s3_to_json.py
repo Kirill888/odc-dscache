@@ -20,41 +20,46 @@ def parse_yaml(data):
         return None, str(e)
 
 
-def grab_s3_yamls(input_fname, output_fname, region_name=None):
-    urls = slurp_lines(input_fname)
+def process_doc(url, data):
+    metadata, error = parse_yaml(data)
+    if metadata is None:
+        return None, error
 
-    n_total = len(urls)
+    p_type = metadata.get('product_type', '--')
+    product = PRODUCT_MAP.get(p_type, p_type)
+
+    out = dict(metadata=metadata,
+               uris=[url],
+               product=product)
+    try:
+        out = json.dumps(out, separators=(',', ':'), check_circular=False)
+    except Exception as e:
+        return None, str(e)
+
+    return out, None
+
+
+def grab_s3_yamls(input_fname, output_fname, region_name=None):
     s3 = make_s3_client(region_name=region_name)
 
+    urls = slurp_lines(input_fname)
+    n_total = len(urls)
+
     with open(output_fname, 'wt') as f:
-        for idx, url in enumerate(urls):
-            try:
-                data = s3_fetch(url, s3)
-            except:
-                print('Failed to fetch %s' % url)
-                continue
+        with click.progressbar(urls, length=n_total, label='Loading from S3') as urls:
+            for url in urls:
+                try:
+                    data = s3_fetch(url, s3)
+                except:
+                    print('Failed to fetch %s' % url)
+                    continue
 
-            metadata, error = parse_yaml(data)
-            if metadata is None:
-                print('Failed to parse YAML in %s' % url)
-                continue
-
-            p_type = metadata.get('product_type', '--')
-            product = PRODUCT_MAP.get(p_type, p_type)
-
-            out = dict(metadata=metadata,
-                       uris=[url],
-                       product=product)
-            out = json.dumps(out, separators=(',', ':'), check_circular=False)
-
-            f.write(out)
-            f.write('\n')
-
-            if (idx % 100) == 0:
-                print('.', end='')
-
-            if (idx % 1000) == 0:
-                print('{:5.1f}%'.format(100*idx/n_total))
+                out, error = process_doc(url, data)
+                if out is None:
+                    print('Failed: %s\n%s' % (url, error))
+                else:
+                    f.write(out)
+                    f.write('\n')
 
 
 @click.command('fetch-s3-yamls')
