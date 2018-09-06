@@ -14,7 +14,10 @@ PRODUCT_MAP = dict(
 
 
 def parse_yaml(data):
-    return yaml.load(data, Loader=yaml.CSafeLoader)
+    try:
+        return yaml.load(data, Loader=yaml.CSafeLoader), None
+    except Exception as e:
+        return None, str(e)
 
 
 def grab_s3_yamls(input_fname, output_fname, region_name=None):
@@ -31,7 +34,11 @@ def grab_s3_yamls(input_fname, output_fname, region_name=None):
                 print('Failed to fetch %s' % url)
                 continue
 
-            metadata = parse_yaml(data)
+            metadata, error = parse_yaml(data)
+            if metadata is None:
+                print('Failed to parse YAML in %s' % url)
+                continue
+
             p_type = metadata.get('product_type', '--')
             product = PRODUCT_MAP.get(p_type, p_type)
 
