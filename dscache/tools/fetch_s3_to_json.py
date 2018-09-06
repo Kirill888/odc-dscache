@@ -1,9 +1,9 @@
-#!/usr/bin/env python
-from aws_utils import slurp_lines
-from aws_utils.s3tools import s3_fetch, make_s3_client
 import yaml
 import json
-from types import SimpleNamespace
+import click
+
+from aws_utils import slurp_lines
+from aws_utils.s3tools import s3_fetch, make_s3_client
 
 
 PRODUCT_MAP = dict(
@@ -50,8 +50,23 @@ def grab_s3_yamls(input_fname, output_fname, region_name=None):
                 print('{:5.1f}%'.format(100*idx/n_total))
 
 
-if __name__ == '__main__':
-    import sys
+@click.command('fetch-s3-yamls')
+@click.argument('in_file', type=str, nargs=1)
+@click.argument('out_file', type=str, nargs=1)
+def cli(in_file, out_file):
+    """ Turn s3 urls pointing to YAML files to JSON strings.
 
-    in_file, out_file = sys.argv[1:]
+    \b
+    For every line in `in_file`
+       - Treat line as a URI and fetch YAML document from it
+       - Generate JSON object with fields:
+         - metadata -- contents of the YAML (parsed into object tree)
+         - uris     -- list containing single uri from which `metadata` was fetched
+         - product  -- product name derived from `product_type` field if present
+       - Serialise JSON object to a single line in `out_file`
+    """
     grab_s3_yamls(in_file, out_file)
+
+
+if __name__ == '__main__':
+    cli()
