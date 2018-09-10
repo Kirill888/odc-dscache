@@ -13,6 +13,7 @@ setup(
                       'zstandard',
                       'lmdb',
                       'click',
+                      'toolz',
                       ],
     tests_require=['pytest'],
     extras_require=dict(),
