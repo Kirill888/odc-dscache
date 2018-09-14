@@ -86,3 +86,34 @@ and dataset_type_ref = (select id from agdc.dataset_type where name = %(product)
             yield ds
 
     cur.close()
+
+
+class DcTileExtract(object):
+    """ Construct ``datacube.api.grid_workflow.Tile`` object from dataset cache.
+    """
+
+    def __init__(self, cache,
+                 group_by='time',
+                 key_fmt=None,
+                 grid_spec=None):
+        from datacube.api.query import query_group_by
+        from .dstiler import GS_ALBERS
+
+        self._cache = cache
+        self._grouper = query_group_by(group_by=group_by)
+        self._grid_spec = GS_ALBERS if grid_spec is None else grid_spec
+        self._key_fmt = 'albers/{:+03d}{:+03d}' if key_fmt is None else key_fmt
+
+    def __call__(self, tile_idx, _y=None):
+        from datacube import Datacube
+        from datacube.api.grid_workflow import Tile
+
+        if _y is not None:
+            tile_idx = (tile_idx, _y)
+
+        k = self._key_fmt.format(*tile_idx)
+        dss = list(self._cache.stream_group(k))
+
+        geobox = self._grid_spec.tile_geobox(tile_idx)
+        sources = Datacube.group_datasets(dss, self._grouper)
+        return Tile(sources, geobox)
