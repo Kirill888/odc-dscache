@@ -3,7 +3,7 @@ import json
 import click
 
 from aws_utils import slurp_lines
-from aws_utils.s3tools import s3_fetch, make_s3_client
+from aws_utils.s3tools import s3_fetch, make_s3_client, s3_find
 
 
 PRODUCT_MAP = dict(
@@ -42,8 +42,21 @@ def process_doc(url, data):
 def grab_s3_yamls(input_fname, output_fname, region_name=None):
     s3 = make_s3_client(region_name=region_name)
 
-    urls = slurp_lines(input_fname)
-    n_total = len(urls)
+    if input_fname.startswith('s3://'):
+        bb = input_fname.split('**/')
+        if len(bb) > 1:
+            base, match = bb
+        else:
+            base, match = input_fname, None
+
+        if not match:
+            match = '*yaml'
+
+        urls = s3_find(base, match)
+        n_total = None
+    else:
+        urls = slurp_lines(input_fname)
+        n_total = len(urls)
 
     with open(output_fname, 'wt') as f:
         with click.progressbar(urls, length=n_total, label='Loading from S3') as urls:
@@ -76,6 +89,12 @@ def cli(in_file, out_file):
          - uris     -- list containing single uri from which `metadata` was fetched
          - product  -- product name derived from `product_type` field if present
        - Serialise JSON object to a single line in `out_file`
+
+    \b
+    Instead of file with urls you can supply a url in a form:
+      `s3://bucket/some/prefix/**/*yaml`
+
+    In this case every file under `s3://bucket/some/prefix/` that ends on `yaml` will be processed.
     """
     grab_s3_yamls(in_file, out_file)
 
