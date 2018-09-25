@@ -23,6 +23,7 @@ setup(
             'fetch_s3_yamls = dscache.tools.fetch_s3_to_json:cli',
             'slurpy = dscache.tools.slurpy:cli',
             'dstiler = dscache.tools.dstiler:cli',
+            's3-find = dscache.tools.app_s3_find:cli',
         ]
     }
 )
