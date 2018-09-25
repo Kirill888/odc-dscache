@@ -14,6 +14,7 @@ setup(
                       'lmdb',
                       'click',
                       'toolz',
+                      'aiohttp',
                       ],
     tests_require=['pytest'],
     extras_require=dict(),

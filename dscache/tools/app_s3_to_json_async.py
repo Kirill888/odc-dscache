@@ -43,35 +43,60 @@ def d2json(d):
 
 
 def qmap(proc, q, eos_marker=None):
+    """ Converts queue to an iterator.
+
+    For every `item` in the `q` that is not `eos_marker`, `yield proc(item)`
+    """
     while True:
         item = q.get(block=True)
         if item is eos_marker:
+            q.task_done()
             break
         else:
             yield proc(item)
+            q.task_done()
 
 
 def q2q_map(proc, q_in, q_out, eos_marker=None):
+    """ Like map but input and output are Queue objects.
+
+    `eos_marker` - marks end of stream.
+    """
     while True:
         item = q_in.get(block=True)
         if item is eos_marker:
             q_out.put(item, block=True)
+            q_in.task_done()
             break
         else:
             q_out.put(proc(item))
+            q_in.task_done()
 
 
-def read_stdin_lines():
+def read_stdin_lines(skip_empty=False):
+    """ Read lines from stdin.
+
+    Returns iterator of lines with any whitespace trimmed.
+
+    skip_empty - when True whitespace only lines will be omitted
+    """
     from sys import stdin
+
+    pred = {True: lambda s: len(s) > 0,
+            False: lambda s: True}[skip_empty]
 
     for l in stdin:
         l = l.strip()
-        if len(l) > 0:
+        if pred(l):
             yield l
 
 
 @click.command('s3-to-json-async')
-def cli():
+@click.option('-n', type=int,
+              help='Number of concurrent async connections to S3')
+@click.option('--threads', type=int,
+              help='Number of yaml parsing threads')
+def cli(n, threads):
     """ Turn s3 urls pointing to YAML files to JSON strings.
 
     \b
@@ -80,10 +105,12 @@ def cli():
        - Generate JSON object with fields:
          - metadata -- contents of the YAML (parsed into object tree)
          - uris     -- list containing single uri from which `metadata` was fetched
-         - product  -- product name derived from `product_type` field if present
        - Serialise JSON object to a single line in `out_file`
     """
     from sys import stderr
+
+    n_worker_threads = 4 if threads is None else threads
+    nconnections = 64 if n is None else n
 
     q_raw = queue.Queue(maxsize=10_000)
     q_json = queue.Queue(maxsize=10_000)
@@ -93,8 +120,8 @@ def cli():
     def on_data(data, url, idx=None, time=None):
         q_raw.put(Data(url, data, idx, time))
 
-    def read_stage():
-        fetch_bunch(read_stdin_lines(), on_data)
+    def read_stage(urls):
+        fetch_bunch(urls, on_data, nconnections=nconnections)
 
         for _ in range(n_worker_threads):
             q_raw.put(EOS)
@@ -105,16 +132,18 @@ def cli():
             if (i % 100) == 0:
                 print('{:9,d}'.format(i), file=stderr, end='\r', flush=True)
 
-    n_worker_threads = 4
     threads = []
-    for _ in range(n_worker_threads):
-        thread = Thread(target=lambda: q2q_map(d2json, q_raw, q_json, eos_marker=EOS))
+
+    def launch(proc, *args, **kwargs):
+        thread = Thread(target=proc, args=args, kwargs=kwargs)
         thread.start()
         threads.append(thread)
 
-    read_thread = Thread(target=read_stage)
-    read_thread.start()
-    threads.append(read_thread)
+    for _ in range(n_worker_threads):
+        launch(q2q_map, d2json, q_raw, q_json, eos_marker=EOS)
+
+    urls = read_stdin_lines(skip_empty=True)
+    launch(read_stage, urls)
 
     dump_to_stdout(qmap(lambda x: x, q_json, eos_marker=EOS))
 
