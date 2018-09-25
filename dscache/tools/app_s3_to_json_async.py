@@ -83,6 +83,8 @@ def cli():
          - product  -- product name derived from `product_type` field if present
        - Serialise JSON object to a single line in `out_file`
     """
+    from sys import stderr
+
     q_raw = queue.Queue(maxsize=10_000)
     q_json = queue.Queue(maxsize=10_000)
 
@@ -92,21 +94,29 @@ def cli():
         q_raw.put(Data(url, data, idx, time))
 
     def dump_to_stdout(lines):
-        for l in lines:
-            print(l, flush=True)
+        for i, l in enumerate(lines):
+            print(l, flush=((i % 10) == 0))
+            if (i % 1) == 0:
+                print('{:9,d}'.format(i), file=stderr, end='\r', flush=True)
 
-    proc_thread = Thread(target=lambda: q2q_map(d2json, q_raw, q_json, eos_marker=EOS))
+    n_worker_threads = 4
+    threads = []
+    for _ in range(n_worker_threads):
+        thread = Thread(target=lambda: q2q_map(d2json, q_raw, q_json, eos_marker=EOS))
+        thread.start()
+        threads.append(thread)
+
     out_thread = Thread(target=lambda: dump_to_stdout(qmap(lambda x: x, q_json, eos_marker=EOS)))
-    proc_thread.start()
     out_thread.start()
+    threads.append(out_thread)
 
     fetch_bunch(read_stdin_lines(), on_data)
 
-    for _ in range(10):
+    for _ in range(n_worker_threads):
         q_raw.put(EOS)
 
-    proc_thread.join()
-    out_thread.join()
+    for th in threads:
+        th.join()
 
 
 if __name__ == '__main__':
