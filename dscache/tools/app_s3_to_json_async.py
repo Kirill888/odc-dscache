@@ -93,10 +93,16 @@ def cli():
     def on_data(data, url, idx=None, time=None):
         q_raw.put(Data(url, data, idx, time))
 
+    def read_stage():
+        fetch_bunch(read_stdin_lines(), on_data)
+
+        for _ in range(n_worker_threads):
+            q_raw.put(EOS)
+
     def dump_to_stdout(lines):
         for i, l in enumerate(lines):
             print(l, flush=((i % 10) == 0))
-            if (i % 1) == 0:
+            if (i % 100) == 0:
                 print('{:9,d}'.format(i), file=stderr, end='\r', flush=True)
 
     n_worker_threads = 4
@@ -106,14 +112,11 @@ def cli():
         thread.start()
         threads.append(thread)
 
-    out_thread = Thread(target=lambda: dump_to_stdout(qmap(lambda x: x, q_json, eos_marker=EOS)))
-    out_thread.start()
-    threads.append(out_thread)
+    read_thread = Thread(target=read_stage)
+    read_thread.start()
+    threads.append(read_thread)
 
-    fetch_bunch(read_stdin_lines(), on_data)
-
-    for _ in range(n_worker_threads):
-        q_raw.put(EOS)
+    dump_to_stdout(qmap(lambda x: x, q_json, eos_marker=EOS))
 
     for th in threads:
         th.join()
