@@ -24,6 +24,7 @@ setup(
             'slurpy = dscache.tools.slurpy:cli',
             'dstiler = dscache.tools.dstiler:cli',
             's3-find = dscache.tools.app_s3_find:cli',
+            's3-yaml-to-json = dscache.tools.app_s3_to_json_async:cli',
         ]
     }
 )
