@@ -117,3 +117,52 @@ class DcTileExtract(object):
         geobox = self._grid_spec.tile_geobox(tile_idx)
         sources = Datacube.group_datasets(dss, self._grouper)
         return Tile(sources, geobox)
+
+
+def qmap(proc, q, eos_marker=None):
+    """ Converts queue to an iterator.
+
+    For every `item` in the `q` that is not `eos_marker`, `yield proc(item)`
+    """
+    while True:
+        item = q.get(block=True)
+        if item is eos_marker:
+            q.task_done()
+            break
+        else:
+            yield proc(item)
+            q.task_done()
+
+
+def q2q_map(proc, q_in, q_out, eos_marker=None):
+    """ Like map but input and output are Queue objects.
+
+    `eos_marker` - marks end of stream.
+    """
+    while True:
+        item = q_in.get(block=True)
+        if item is eos_marker:
+            q_out.put(item, block=True)
+            q_in.task_done()
+            break
+        else:
+            q_out.put(proc(item))
+            q_in.task_done()
+
+
+def read_stdin_lines(skip_empty=False):
+    """ Read lines from stdin.
+
+    Returns iterator of lines with any whitespace trimmed.
+
+    skip_empty - when True whitespace only lines will be omitted
+    """
+    from sys import stdin
+
+    pred = {True: lambda s: len(s) > 0,
+            False: lambda s: True}[skip_empty]
+
+    for l in stdin:
+        l = l.strip()
+        if pred(l):
+            yield l
