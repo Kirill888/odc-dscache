@@ -7,7 +7,8 @@ import queue
 from aws_utils.s3async import fetch_bunch
 from threading import Thread
 
-from . import read_stdin_lines, q2q_map, qmap
+from . import read_stdin_lines
+from .ppr import q2q_map, qmap
 
 
 Data = namedtuple('Data', 'url data idx time'.split(' '))
