@@ -1,15 +1,10 @@
 import rasterio
-import threading
-from .s3tools import auto_find_region, get_boto3_session
+from .s3tools import auto_find_region
 from .parallel import ParallelStreamProc
+from .rioenv import setup_local_env, local_env, has_local_env
+
 
 __all__ = ["ParallelReader"]
-
-_thread_lcl = threading.local()
-
-
-def _session(region_name=None):
-    return get_boto3_session(region_name, cache=_thread_lcl)
 
 
 class ParallelReader(object):
@@ -42,7 +37,11 @@ class ParallelReader(object):
                              gdal_opts=None,
                              region_name=None,
                              timer=None):
-        session = _session(region_name)
+
+        if not has_local_env():
+            setup_local_env(region_name=region_name, **gdal_opts)
+
+        env = local_env()
 
         if timer is not None:
             def proc(url, userdata):
@@ -54,12 +53,13 @@ class ParallelReader(object):
                 with rasterio.open(url, 'r') as f:
                     on_file_cbk(f, userdata)
 
-        with rasterio.Env(session=session, **gdal_opts):
-            for userdata, url in src_stream:
+        for userdata, url in src_stream:
+            with env:
                 proc(url, userdata)
 
     def __init__(self, nthreads,
-                 region_name=None):
+                 region_name=None,
+                 **gdal_extra_opts):
         if region_name is None:
             region_name = auto_find_region()  # Will throw on error
 
@@ -69,8 +69,10 @@ class ParallelReader(object):
         self._region_name = region_name
 
         self._gdal_opts = dict(VSI_CACHE=True,
+                               GDAL_INGESTED_BYTES_AT_OPEN=64*1024,
                                CPL_VSIL_CURL_ALLOWED_EXTENSIONS='tif',
-                               GDAL_DISABLE_READDIR_ON_OPEN=True)
+                               GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR')
+        self._gdal_opts.update(**gdal_extra_opts)
 
     def warmup(self, action=None):
         """Mostly needed for benchmarking needs. Ensures that worker threads are
@@ -80,11 +82,13 @@ class ParallelReader(object):
         callback that will be called once in every worker thread.
         """
         def _warmup():
-            session = _session(region_name=self._region_name)
-            with rasterio.Env(session=session, **self._gdal_opts):
+            if not has_local_env():
+                setup_local_env(region_name=self._region_name, **self._gdal_opts)
+
+            with local_env() as env:
                 if action:
                     action()
-            return session.get_credentials()
+                return env
 
         return self._pstream.broadcast(_warmup)
 
