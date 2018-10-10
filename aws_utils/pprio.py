@@ -42,15 +42,16 @@ class ParallelReader(object):
             setup_local_env(region_name=region_name, **gdal_opts)
 
         env = local_env()
+        open_args = dict(sharing=False)
 
         if timer is not None:
             def proc(url, userdata):
                 t0 = timer()
-                with rasterio.open(url, 'r') as f:
+                with rasterio.open(url, 'r', **open_args) as f:
                     on_file_cbk(f, userdata, t0=t0)
         else:
             def proc(url, userdata):
-                with rasterio.open(url, 'r') as f:
+                with rasterio.open(url, 'r', **open_args) as f:
                     on_file_cbk(f, userdata)
 
         for userdata, url in src_stream:
