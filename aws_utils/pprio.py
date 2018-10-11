@@ -1,5 +1,5 @@
 import rasterio
-from .s3tools import auto_find_region
+from .s3tools import get_boto3_session
 from .parallel import ParallelStreamProc
 from .rioenv import setup_local_env, local_env, has_local_env
 
@@ -34,12 +34,13 @@ class ParallelReader(object):
     @staticmethod
     def _process_file_stream(src_stream,
                              on_file_cbk,
+                             credentials,
                              gdal_opts=None,
                              region_name=None,
                              timer=None):
 
         if not has_local_env():
-            setup_local_env(region_name=region_name, **gdal_opts)
+            setup_local_env(credentials, region_name=region_name, **gdal_opts)
 
         env = local_env()
         open_args = dict(sharing=False)
@@ -61,13 +62,13 @@ class ParallelReader(object):
     def __init__(self, nthreads,
                  region_name=None,
                  **gdal_extra_opts):
-        if region_name is None:
-            region_name = auto_find_region()  # Will throw on error
+        session = get_boto3_session(region_name=region_name)
 
         self._nthreads = nthreads
         self._pstream = ParallelStreamProc(nthreads)
         self._process_files = self._pstream.bind(ParallelReader._process_file_stream)
-        self._region_name = region_name
+        self._region_name = session.region_name
+        self._creds = session.get_credentials()
 
         self._gdal_opts = dict(VSI_CACHE=True,
                                GDAL_INGESTED_BYTES_AT_OPEN=64*1024,
@@ -84,7 +85,7 @@ class ParallelReader(object):
         """
         def _warmup():
             if not has_local_env():
-                setup_local_env(region_name=self._region_name, **self._gdal_opts)
+                setup_local_env(self._creds, region_name=self._region_name, **self._gdal_opts)
 
             with local_env() as env:
                 if action:
@@ -120,6 +121,7 @@ class ParallelReader(object):
         ```
         """
         self._process_files(stream, cbk,
+                            self._creds,
                             self._gdal_opts,
                             region_name=self._region_name,
                             timer=timer)
