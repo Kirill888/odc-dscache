@@ -2,8 +2,8 @@ import yaml
 import json
 import click
 
-from aws_utils import slurp_lines
-from aws_utils.s3tools import s3_fetch, make_s3_client, s3_find
+from . import slurp_lines
+from dea.aws import s3_fetch, make_s3_client, s3_find
 
 
 PRODUCT_MAP = dict(

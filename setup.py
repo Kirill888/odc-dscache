@@ -14,7 +14,7 @@ setup(
                       'lmdb',
                       'click',
                       'toolz',
-                      'aiohttp',
+                      'dea-proto[async]',
                       ],
     tests_require=['pytest'],
     extras_require=dict(),

@@ -4,11 +4,11 @@ import click
 from collections import namedtuple
 import queue
 
-from aws_utils.s3async import fetch_bunch
+from dea.aws.s3async import fetch_bunch
 from threading import Thread
 
 from . import read_stdin_lines
-from .ppr import q2q_map, qmap
+from dea.ppr import q2q_map, qmap
 
 
 Data = namedtuple('Data', 'url data idx time'.split(' '))

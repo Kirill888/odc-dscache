@@ -1,5 +1,5 @@
 import click
-from aws_utils.s3tools import make_s3_client, s3_find
+from dea.aws import make_s3_client, s3_find
 
 
 @click.command('s3-ls')
