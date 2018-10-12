@@ -20,12 +20,12 @@ setup(
     extras_require=dict(),
     entry_points={
         'console_scripts': [
-            'index_from_json = dscache.tools.index_from_json:cli',
-            'fetch_s3_yamls = dscache.tools.fetch_s3_to_json:cli',
-            'slurpy = dscache.tools.slurpy:cli',
-            'dstiler = dscache.tools.dstiler:cli',
-            's3-find = dscache.tools.app_s3_find:cli',
-            's3-yaml-to-json = dscache.tools.app_s3_to_json_async:cli',
+            'slurpy = dscache.apps.slurpy:cli',
+            'dstiler = dscache.apps.dstiler:cli',
+            'index_from_json = dscache.apps.index_from_json:cli',
+            'fetch_s3_yamls = dscache.apps.fetch_s3_to_json:cli',
+            's3-find = dscache.apps.s3_find:cli',
+            's3-yaml-to-json = dscache.apps.s3_to_json_async:cli',
         ]
     }
 )

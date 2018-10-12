@@ -2,7 +2,7 @@ import yaml
 import json
 import click
 
-from . import slurp_lines
+from dscache.tools import slurp_lines
 from dea.aws import s3_fetch, make_s3_client, s3_find
 
 

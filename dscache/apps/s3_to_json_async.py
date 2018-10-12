@@ -3,12 +3,12 @@ import json
 import click
 from collections import namedtuple
 import queue
-
-from dea.aws.s3async import fetch_bunch
 from threading import Thread
 
-from . import read_stdin_lines
+from dea.aws.s3async import fetch_bunch
 from dea.ppr import q2q_map, qmap
+
+from dscache.tools import read_stdin_lines
 
 
 Data = namedtuple('Data', 'url data idx time'.split(' '))
