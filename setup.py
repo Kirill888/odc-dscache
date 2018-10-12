@@ -22,10 +22,6 @@ setup(
         'console_scripts': [
             'slurpy = dscache.apps.slurpy:cli',
             'dstiler = dscache.apps.dstiler:cli',
-            'index_from_json = dscache.apps.index_from_json:cli',
-            'fetch_s3_yamls = dscache.apps.fetch_s3_to_json:cli',
-            's3-find = dscache.apps.s3_find:cli',
-            's3-yaml-to-json = dscache.apps.s3_to_json_async:cli',
         ]
     }
 )
