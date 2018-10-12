@@ -1,7 +1,8 @@
 import rasterio
-from .s3tools import get_boto3_session
+from dea.aws import get_boto3_session
+from dea.aws.rioenv import setup_local_env, local_env, has_local_env
+
 from .parallel import ParallelStreamProc
-from .rioenv import setup_local_env, local_env, has_local_env
 
 
 __all__ = ["ParallelReader"]
